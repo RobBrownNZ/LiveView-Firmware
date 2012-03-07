@@ -2121,7 +2121,7 @@ FUNCTION:   TODO_800125e
 FUNCTION:   TODO_8001334
  8001334:   a900        add   r1, sp, #0
  8001336:   4620        mov   r0, r4
- 8001338:   f001 b894   b.w   8002464 <FlashStart+0x2464>
+ 8001338:   f001 b894   b.w   8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
 
 FUNCTION:   TODO_800133c
  800133c:   f8ad 0000   strh.w   r0, [sp]
@@ -2178,7 +2178,7 @@ FUNCTION:   TODO_8001390
  80013a2:   f88d 0003   strb.w   r0, [sp, #3]
  80013a6:   a900        add   r1, sp, #0
  80013a8:   4816        ldr   r0, =0x40010c00    ; { GPIO Port B } | [pc, #88]  ; (8001404 <FlashStart+0x1404>)
- 80013aa:   f001 f85b   bl 8002464 <FlashStart+0x2464>
+ 80013aa:   f001 f85b   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  80013ae:   2101        movs  r1, #1
  80013b0:   f44f 1000   mov.w r0, #2097152   ; 0x200000
  80013b4:   f000 fb9e   bl 8001af4 <FlashStart+0x1af4>
@@ -2417,7 +2417,7 @@ Set PA10 as output (push-pull) and output high
 
  80015e2:   f44f 6080   mov.w r0, #1024   ; 0x400
  80015e6:   f8ad 0004   strh.w   r0, [sp, #4]
- 80015ea:   f000 f8e0   bl 80017ae <FlashStart+0x17ae>
+ 80015ea:   f000 f8e0   bl 80017ae <FlashStart+0x17ae>      ; Initialise GPIO_Setup_t mode and mode_2 for output, push-pull, 50MHz
  80015ee:   f8df b198   ldr.w fp, =0x40010800    ; { GPIO Port A } | [pc, #408] ; 8001788 <FlashStart+0x1788>
  80015f2:   a901        add   r1, sp, #4
  80015f4:   4658        mov   r0, fp
@@ -2444,20 +2444,24 @@ Set PA6 as input with pull-up
  800161c:   d03c        beq.n 8001698 <FlashStart+0x1698> ; Jump if result 0
  
 ; The following code is executed if the CPU was reset by a watchdog (either window or independent)
- 
+
+; Get the initial stack pointer address for the application, mask it with 0x2ffe000. If the result
+; is 0x20000000 (i.e. the initial stack pointer is in RAM), then jump to the application.
  800161e:   485c        ldr   r0, =0x8003000    ; { Flash } | [pc, #368] ; (8001790 <FlashStart+0x1790>)
  8001620:   6801        ldr   r1, [r0, #0]
  8001622:   4a5c        ldr   r2, =0x2ffe0000    ; [pc, #368] ; (8001794 <FlashStart+0x1794>)
  8001624:   4011        ands  r1, r2
  8001626:   f1b1 5f00   cmp.w r1, #536870912 ; 0x20000000
  800162a:   d107        bne.n 800163c <FlashStart+0x163c>
- 800162c:   6841        ldr   r1, [r0, #4]
- 800162e:   6131        str   r1, [r6, #16]
+ 800162c:   6841        ldr   r1, [r0, #4]                  ; Get entry point for application
+ 800162e:   6131        str   r1, [r6, #16]                 ; store it in RAM (bss)
  8001630:   60f1        str   r1, [r6, #12]
- 8001632:   6800        ldr   r0, [r0, #0]
- 8001634:   f001 fae6   bl 8002c04 <FlashStart+0x2c04>
- 8001638:   68f0        ldr   r0, [r6, #12]
- 800163a:   4780        blx   r0
+ 8001632:   6800        ldr   r0, [r0, #0]                  ; Get initial stack pointer
+ 8001634:   f001 fae6   bl 8002c04 <FlashStart+0x2c04>      ; SetMainStackPointerToR0
+ 8001638:   68f0        ldr   r0, [r6, #12]                 ; get entry point back again
+ 800163a:   4780        blx   r0                            ; enter Application
+
+; Here if the initial stack pointer isn't in RAM
  800163c:   2002        movs  r0, #2
  800163e:   7230        strb  r0, [r6, #8]
  8001640:   2000        movs  r0, #0
@@ -2485,32 +2489,32 @@ Set PA6 as input with pull-up
  800167a:   212d        movs  r1, #45  ; 0x2d
  800167c:   2041        movs  r0, #65  ; 0x41
  800167e:   f001 f95f   bl 8002940 <FlashStart+0x2940>
- 8001682:   f000 f89b   bl 80017bc <FlashStart+0x17bc>
+ 8001682:   f000 f89b   bl 80017bc <FlashStart+0x17bc>         ; Test_GPIO_bit_6
  8001686:   2800        cmp   r0, #0
  8001688:   d0fb        beq.n 8001682 <FlashStart+0x1682>
  800168a:   f000 f88b   bl 80017a4 <FlashStart+0x17a4>
- 800168e:   f000 f895   bl 80017bc <FlashStart+0x17bc>
+ 800168e:   f000 f895   bl 80017bc <FlashStart+0x17bc>         ; Test_GPIO_bit_6
  8001692:   2800        cmp   r0, #0
  8001694:   d1fb        bne.n 800168e <FlashStart+0x168e>
  8001696:   e7d1        b.n   800163c <FlashStart+0x163c>
 
 ; Rejoin here if there was no previous watchdog reset
 
- 8001698:   f000 f890   bl 80017bc <FlashStart+0x17bc>
+ 8001698:   f000 f890   bl 80017bc <FlashStart+0x17bc>         ; Test_GPIO_bit_6 (Port C)
  800169c:   2800        cmp   r0, #0
- 800169e:   d1be        bne.n 800161e <FlashStart+0x161e>
- 80016a0:   f000 f885   bl 80017ae <FlashStart+0x17ae>
+ 800169e:   d1be        bne.n 800161e <FlashStart+0x161e>      ; if not clear, enter the application
+ 80016a0:   f000 f885   bl 80017ae <FlashStart+0x17ae>         ; Initialise GPIO_Setup_t mode and mode_2 for output, push-pull, 50MHz
  80016a4:   2002        movs  r0, #2
  80016a6:   f8ad 0004   strh.w   r0, [sp, #4]
  80016aa:   a901        add   r1, sp, #4
  80016ac:   4658        mov   r0, fp
- 80016ae:   f000 fed9   bl 8002464 <FlashStart+0x2464>
+ 80016ae:   f000 fed9   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  80016b2:   2020        movs  r0, #32
  80016b4:   f8ad 0004   strh.w   r0, [sp, #4]
  80016b8:   f8df a0e4   ldr.w sl, =0x40010c00    ; { GPIO Port B } | [pc, #228] ; 80017a0 <FlashStart+0x17a0>
  80016bc:   a901        add   r1, sp, #4
  80016be:   4650        mov   r0, sl
- 80016c0:   f000 fed0   bl 8002464 <FlashStart+0x2464>
+ 80016c0:   f000 fed0   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  80016c4:   2002        movs  r0, #2
  80016c6:   f000 f87d   bl 80017c4 <FlashStart+0x17c4>
  80016ca:   f7ff fe61   bl 8001390 <FlashStart+0x1390>
@@ -2526,7 +2530,7 @@ Set PA6 as input with pull-up
  80016e0:   2400        movs  r4, #0
  80016e2:   2102        movs  r1, #2
  80016e4:   4648        mov   r0, r9
- 80016e6:   f000 ff1a   bl 800251e <FlashStart+0x251e>
+ 80016e6:   f000 ff1a   bl 800251e <FlashStart+0x251e>            ; Test_GPIO_Input_Data
  80016ea:   b940        cbnz  r0, 80016fe <FlashStart+0x16fe>
  80016ec:   2102        movs  r1, #2
  80016ee:   4658        mov   r0, fp
@@ -2547,7 +2551,7 @@ Set PA6 as input with pull-up
  8001718:   e7fe        b.n   8001718 <FlashStart+0x1718>
  800171a:   f44f 5100   mov.w r1, #8192   ; 0x2000
  800171e:   4648        mov   r0, r9
- 8001720:   f000 fefd   bl 800251e <FlashStart+0x251e>
+ 8001720:   f000 fefd   bl 800251e <FlashStart+0x251e>            ; Test_GPIO_Input_Data
  8001724:   b128        cbz   r0, 8001732 <FlashStart+0x1732>
  8001726:   b904        cbnz  r4, 800172a <FlashStart+0x172a>
  8001728:   2401        movs  r4, #1
@@ -2614,10 +2618,10 @@ FUNCTION:   Initialise GPIO_Setup_t mode as specified in LSB(r0), mode_2 as #3
  80017b6:   f88d 0006   strb.w   r0, [sp, #6]
  80017ba:   4770        bx lr
 
-FUNCTION:   TODO_80017bc
- 80017bc:   2140        movs  r1, #64  ; 0x40
- 80017be:   4648        mov   r0, r9
- 80017c0:   f000 bead   b.w   800251e <FlashStart+0x251e>
+FUNCTION:   Test_GPIO_bit_6
+ 80017bc:   2140        movs  r1, #64  ; 0x40      ; bit 6
+ 80017be:   4648        mov   r0, r9               ; r0 = 0x40011000, GPIO Port C registers
+ 80017c0:   f000 bead   b.w   800251e <FlashStart+0x251e>         ; Test_GPIO_Input_Data
 
 FUNCTION:   Setup GPIO as input with pull-up
  80017c4:   f8ad 0004   strh.w   r0, [sp, #4]
@@ -2627,7 +2631,7 @@ FUNCTION:   Setup GPIO as input with pull-up
  80017d0:   f88d 0006   strb.w   r0, [sp, #6]
  80017d4:   a901        add   r1, sp, #4
  80017d6:   4648        mov   r0, r9
- 80017d8:   f000 be44   b.w   8002464 <FlashStart+0x2464>
+ 80017d8:   f000 be44   b.w   8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
 
 FUNCTION:   TODO_80017dc
  80017dc:   b580        push  {r7, lr}
@@ -3414,38 +3418,38 @@ FUNCTION:   TODO_8001df8
  8001e1a:   4c46        ldr   r4, =0x40011400    ; { GPIO Port D } | [pc, #280] ; (8001f34 <FlashStart+0x1f34>)
  8001e1c:   a900        add   r1, sp, #0
  8001e1e:   4620        mov   r0, r4
- 8001e20:   f000 fb20   bl 8002464 <FlashStart+0x2464>
+ 8001e20:   f000 fb20   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e24:   f64f 7080   movw  r0, #65408  ; 0xff80
  8001e28:   f8ad 0000   strh.w   r0, [sp]
  8001e2c:   4d2b        ldr   r5, =0x40011800    ; { GPIO Port E } | [pc, #172] ; (8001edc <FlashStart+0x1edc>)
  8001e2e:   a900        add   r1, sp, #0
  8001e30:   4628        mov   r0, r5
- 8001e32:   f000 fb17   bl 8002464 <FlashStart+0x2464>
+ 8001e32:   f000 fb17   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e36:   f24f 003f   movw  r0, #61503  ; 0xf03f
  8001e3a:   f8ad 0000   strh.w   r0, [sp]
  8001e3e:   a900        add   r1, sp, #0
  8001e40:   4827        ldr   r0, =0x40011c00    ; { GPIO Port F } | [pc, #156] ; (8001ee0 <FlashStart+0x1ee0>)
- 8001e42:   f000 fb0f   bl 8002464 <FlashStart+0x2464>
+ 8001e42:   f000 fb0f   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e46:   203f        movs  r0, #63  ; 0x3f
  8001e48:   f8ad 0000   strh.w   r0, [sp]
  8001e4c:   4e25        ldr   r6, =0x40012000    ; { GPIO Port G } | [pc, #148] ; (8001ee4 <FlashStart+0x1ee4>)
  8001e4e:   a900        add   r1, sp, #0
  8001e50:   4630        mov   r0, r6
- 8001e52:   f000 fb07   bl 8002464 <FlashStart+0x2464>
+ 8001e52:   f000 fb07   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e56:   f44f 5060   mov.w r0, #14336  ; 0x3800
  8001e5a:   f000 f845   bl 8001ee8 <FlashStart+0x1ee8>
  8001e5e:   2078        movs  r0, #120 ; 0x78
  8001e60:   f8ad 0000   strh.w   r0, [sp]
  8001e64:   a900        add   r1, sp, #0
  8001e66:   4628        mov   r0, r5
- 8001e68:   f000 fafc   bl 8002464 <FlashStart+0x2464>
+ 8001e68:   f000 fafc   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e6c:   2030        movs  r0, #48  ; 0x30
  8001e6e:   f000 f83b   bl 8001ee8 <FlashStart+0x1ee8>
  8001e72:   f44f 7000   mov.w r0, #512 ; 0x200
  8001e76:   f8ad 0000   strh.w   r0, [sp]
  8001e7a:   a900        add   r1, sp, #0
  8001e7c:   4630        mov   r0, r6
- 8001e7e:   f000 faf1   bl 8002464 <FlashStart+0x2464>
+ 8001e7e:   f000 faf1   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8001e82:   2002        movs  r0, #2
  8001e84:   9001        str   r0, [sp, #4]
  8001e86:   2000        movs  r0, #0
@@ -3498,7 +3502,7 @@ FUNCTION:   TODO_8001ee8
  8001ee8:   f8ad 0000   strh.w   r0, [sp]
  8001eec:   a900        add   r1, sp, #0
  8001eee:   4620        mov   r0, r4
- 8001ef0:   f000 bab8   b.w   8002464 <FlashStart+0x2464>
+ 8001ef0:   f000 bab8   b.w   8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
 
 FUNCTION:   TODO_8001ef4
  8001ef4:   490d        ldr   r1, =0x64000aaa    ; [pc, #52]  ; (8001f2c <FlashStart+0x1f2c>)
@@ -4295,13 +4299,13 @@ label_7:
 label_6:
  800251a:   e8bd 81f0   ldmia.w  sp!, {r4, r5, r6, r7, r8, pc}
 
-FUNCTION:   TODO_800251e
- 800251e:   6880        ldr   r0, [r0, #8]
+FUNCTION:   Test_GPIO_Input_Data
+ 800251e:   6880        ldr   r0, [r0, #8]                     ; Read port input data register (IDR)
  8002520:   e7ff        b.n   8002522 <FlashStart+0x2522>
- 8002522:   4001        ands  r1, r0
+ 8002522:   4001        ands  r1, r0                           ; mask supplied
  8002524:   0008        movs  r0, r1
  8002526:   d000        beq.n 800252a <FlashStart+0x252a>
- 8002528:   2001        movs  r0, #1
+ 8002528:   2001        movs  r0, #1                           ; return 0 if the input bit is clear, or 1 if set
  800252a:   b2c0        uxtb  r0, r0
  800252c:   4770        bx lr
 
@@ -4407,7 +4411,7 @@ FUNCTION:   TODO_80025f0
  800260c:   f88d 0002   strb.w   r0, [sp, #2]
  8002610:   a900        add   r1, sp, #0
  8002612:   481c        ldr   r0, =0x40010800    ; { GPIO Port A } | [pc, #112] ; (8002684 <FlashStart+0x2684>)
- 8002614:   f7ff ff26   bl 8002464 <FlashStart+0x2464>
+ 8002614:   f7ff ff26   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  8002618:   2004        movs  r0, #4
  800261a:   f8ad 0000   strh.w   r0, [sp]
  800261e:   2010        movs  r0, #16
@@ -4415,7 +4419,7 @@ FUNCTION:   TODO_80025f0
  8002624:   4c1b        ldr   r4, =0x40010c00    ; { GPIO Port B } | [pc, #108] ; (8002694 <FlashStart+0x2694>)
  8002626:   a900        add   r1, sp, #0
  8002628:   4620        mov   r0, r4
- 800262a:   f7ff ff1b   bl 8002464 <FlashStart+0x2464>
+ 800262a:   f7ff ff1b   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
  800262e:   f000 f82b   bl 8002688 <FlashStart+0x2688>
  8002632:   2000        movs  r0, #0
  8002634:   f8ad 0004   strh.w   r0, [sp, #4]
