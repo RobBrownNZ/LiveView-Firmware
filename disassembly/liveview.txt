@@ -40,6 +40,7 @@
  8003094:   0802d4db       Vector 0x25: CAN1_RX1_IRQHandler
  8003098:   0802d4dd       Vector 0x26: CAN1_SCE_IRQHandler
  800309C:   0802d4df       Vector 0x27: EXTI9_5_IRQHandler - handled
+ 800309C:   0802d4df       Vector 0x27: EXTI9_5_IRQHandler - handled
  80030A0:   0802d573       Vector 0x28: TIM1_BRK_IRQHandler
  80030A4:   0802d575       Vector 0x29: TIM1_UP_IRQHandler
  80030A8:   0802d577       Vector 0x2A: TIM1_TRG_COM_IRQHandler

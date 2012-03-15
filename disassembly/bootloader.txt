@@ -986,6 +986,7 @@ FUNCTION:   TODO_80008b8
  80008f4:   40005c00    USB device FS registers
 
  80008f8:   4770        bx lr
+
  80008fa:   0000        movs  r0, r0
  80008fc:   b580        push  {r7, lr}
  80008fe:   f001 f997   bl 8001c30 <FlashStart+0x1c30>
@@ -2069,10 +2070,10 @@ FUNCTION:   TODO_800125e
  800129e:   f001 f948   bl 8002532 <FlashStart+0x2532>
  80012a2:   2101        movs  r1, #1
  80012a4:   f44f 5080   mov.w r0, #4096   ; 0x1000
- 80012a8:   f000 fc18   bl 8001adc <FlashStart+0x1adc>
+ 80012a8:   f000 fc18   bl 8001adc <FlashStart+0x1adc>      ; Enable_APB2_Peripherals
  80012ac:   2101        movs  r1, #1
  80012ae:   2004        movs  r0, #4
- 80012b0:   f000 fc14   bl 8001adc <FlashStart+0x1adc>
+ 80012b0:   f000 fc14   bl 8001adc <FlashStart+0x1adc>      ; Enable_APB2_Peripherals
  80012b4:   20a0        movs  r0, #160 ; 0xa0
  80012b6:   f8ad 0000   strh.w   r0, [sp]
  80012ba:   2018        movs  r0, #24
@@ -2161,15 +2162,19 @@ FUNCTION:   TODO_800136c
  8001384:   2801        cmp   r0, #1
  8001386:   d0f9        beq.n 800137c <FlashStart+0x137c>
  8001388:   bd10        pop   {r4, pc}
+
  800138a:   0000        movs  r0, r0
 
 .pool
  800138c:   40013000    SPI1
 
 
-FUNCTION:   TODO_8001390
+FUNCTION:   I2C_Initialise
  8001390:   b510        push  {r4, lr}
  8001392:   b086        sub   sp, #24
+
+; Set ports PB6 and PB7 to input with pull-down
+ 
  8001394:   20c0        movs  r0, #192 ; 0xc0
  8001396:   f8ad 0000   strh.w   r0, [sp]
  800139a:   2003        movs  r0, #3
@@ -2179,15 +2184,20 @@ FUNCTION:   TODO_8001390
  80013a6:   a900        add   r1, sp, #0
  80013a8:   4816        ldr   r0, =0x40010c00    ; { GPIO Port B } | [pc, #88]  ; (8001404 <FlashStart+0x1404>)
  80013aa:   f001 f85b   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
+
+
+
  80013ae:   2101        movs  r1, #1
  80013b0:   f44f 1000   mov.w r0, #2097152   ; 0x200000
- 80013b4:   f000 fb9e   bl 8001af4 <FlashStart+0x1af4>
+ 80013b4:   f000 fb9e   bl 8001af4 <FlashStart+0x1af4>      ; Enable_APB1_Peripherals -> Enable I2C1
+
  80013b8:   4c77        ldr   r4, =0x40005400    ; { I2C1 } | [pc, #476] ; (8001598 <FlashStart+0x1598>)
  80013ba:   2101        movs  r1, #1
  80013bc:   4620        mov   r0, r4
- 80013be:   f000 fa83   bl 80018c8 <FlashStart+0x18c8>
+ 80013be:   f000 fa83   bl 80018c8 <FlashStart+0x18c8>      ; Set Peripheral Enable bit in I2C1 register
  80013c2:   4620        mov   r0, r4
- 80013c4:   f000 fa0a   bl 80017dc <FlashStart+0x17dc>
+ 80013c4:   f000 fa0a   bl 80017dc <FlashStart+0x17dc>      ; Reset and release I2C1
+ 
  80013c8:   2000        movs  r0, #0
  80013ca:   f8ad 0008   strh.w   r0, [sp, #8]
  80013ce:   f64b 70ff   movw  r0, #49151  ; 0xbfff
@@ -2221,7 +2231,7 @@ FUNCTION:   TODO_8001408
  8001412:   4860        ldr   r0, =0x2000088a    ; { RAM (bss) } | [pc, #384] ; (8001594 <FlashStart+0x1594>)
  8001414:   7800        ldrb  r0, [r0, #0]
  8001416:   b908        cbnz  r0, 800141c <FlashStart+0x141c>
- 8001418:   f7ff ffba   bl 8001390 <FlashStart+0x1390>
+ 8001418:   f7ff ffba   bl 8001390 <FlashStart+0x1390>         ; I2C_Initialise
  800141c:   f8df 8178   ldr.w r8, =0x40005400    ; { I2C1 } | [pc, #376] ; 8001598 <FlashStart+0x1598>
  8001420:   f44f 3100   mov.w r1, #131072 ; 0x20000
  8001424:   4640        mov   r0, r8
@@ -2408,7 +2418,7 @@ Set PC13 as input (floating)
  80015cc:   f8ad 0004   strh.w   r0, [sp, #4]            ; 16-bit local variable @sp+4 = 0x2000
  80015d0:   2004        movs  r0, #4
  80015d2:   f000 f8ed   bl 80017b0 <FlashStart+0x17b0>   ; Initialise Setup_GPIO_t -> sp+7 = LSB(r0), sp+6=0x03
- 80015d6:   f8df 91ac   ldr.w r9, =0x40011000    ; { GPIO Port C } | [pc, #428] ; 8001784 <FlashStart+0x1784>
+ 80015d6:   f8df 91ac   ldr.w r9, =0x40011000            ; { GPIO Port C } | [pc, #428] ; 8001784 <FlashStart+0x1784>
  80015da:   a901        add   r1, sp, #4
  80015dc:   4648        mov   r0, r9
  80015de:   f000 ff41   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
@@ -2417,8 +2427,8 @@ Set PA10 as output (push-pull) and output high
 
  80015e2:   f44f 6080   mov.w r0, #1024   ; 0x400
  80015e6:   f8ad 0004   strh.w   r0, [sp, #4]
- 80015ea:   f000 f8e0   bl 80017ae <FlashStart+0x17ae>      ; Initialise GPIO_Setup_t mode and mode_2 for output, push-pull, 50MHz
- 80015ee:   f8df b198   ldr.w fp, =0x40010800    ; { GPIO Port A } | [pc, #408] ; 8001788 <FlashStart+0x1788>
+ 80015ea:   f000 f8e0   bl 80017ae <FlashStart+0x17ae>   ; Initialise GPIO_Setup_t mode and mode_2 for output, push-pull, 50MHz
+ 80015ee:   f8df b198   ldr.w fp, =0x40010800            ; { GPIO Port A } | [pc, #408] ; 8001788 <FlashStart+0x1788>
  80015f2:   a901        add   r1, sp, #4
  80015f4:   4658        mov   r0, fp
  80015f6:   f000 ff35   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
@@ -2427,14 +2437,12 @@ Set PA10 as output (push-pull) and output high
  80015fe:   4658        mov   r0, fp
  8001600:   f000 ff95   bl 800252e <FlashStart+0x252e>   ; Write_BSRR
 
-Set PA6 as input with pull-up
+Set PC6 as input with pull-up
  
  8001604:   2040        movs  r0, #64  ; 0x40
- 8001606:   f000 f8dd   bl 80017c4 <FlashStart+0x17c4>   ; setup for input with pull-up and jump to Set_GPIO_Configuration
+ 8001606:   f000 f8dd   bl 80017c4 <FlashStart+0x17c4>   ; Setup GPIO as input with pull-up (r9->Port C)
 
-
-
- 800160a:   4e60        ldr   r6, =0x20000830    ; { RAM (bss) } | [pc, #384] ; (800178c <FlashStart+0x178c>)
+ 800160a:   4e60        ldr   r6, =0x20000830            ; { RAM (bss) } | [pc, #384] ; (800178c <FlashStart+0x178c>)
  800160c:   207e        movs  r0, #126 ; 0x7e
  800160e:   f000 fa89   bl 8001b24 <FlashStart+0x1b24>   ; Read_RCC_Control_Register_Bit - Read WWDGRSTF: Window watchdog reset flag
  8001612:   b920        cbnz  r0, 800161e <FlashStart+0x161e>
@@ -2503,20 +2511,30 @@ Set PA6 as input with pull-up
  8001698:   f000 f890   bl 80017bc <FlashStart+0x17bc>         ; Test_GPIO_bit_6 (Port C)
  800169c:   2800        cmp   r0, #0
  800169e:   d1be        bne.n 800161e <FlashStart+0x161e>      ; if not clear, enter the application
+
+; Set PA1 as output, push-pull
+
  80016a0:   f000 f885   bl 80017ae <FlashStart+0x17ae>         ; Initialise GPIO_Setup_t mode and mode_2 for output, push-pull, 50MHz
  80016a4:   2002        movs  r0, #2
  80016a6:   f8ad 0004   strh.w   r0, [sp, #4]
  80016aa:   a901        add   r1, sp, #4
  80016ac:   4658        mov   r0, fp
- 80016ae:   f000 fed9   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
+ 80016ae:   f000 fed9   bl 8002464 <FlashStart+0x2464>         ; Set_GPIO_Configuration
+
+; Set PB5 as output, push-pull
+
  80016b2:   2020        movs  r0, #32
  80016b4:   f8ad 0004   strh.w   r0, [sp, #4]
  80016b8:   f8df a0e4   ldr.w sl, =0x40010c00    ; { GPIO Port B } | [pc, #228] ; 80017a0 <FlashStart+0x17a0>
  80016bc:   a901        add   r1, sp, #4
  80016be:   4650        mov   r0, sl
  80016c0:   f000 fed0   bl 8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
+
+; Set PC1 as input, pull-up
+
  80016c4:   2002        movs  r0, #2
- 80016c6:   f000 f87d   bl 80017c4 <FlashStart+0x17c4>
+ 80016c6:   f000 f87d   bl 80017c4 <FlashStart+0x17c4>         ; Setup GPIO as input with pull-up (r9->Port C)
+ 
  80016ca:   f7ff fe61   bl 8001390 <FlashStart+0x1390>
  80016ce:   4833        ldr   r0, =0x20000844    ; { RAM (bss) } | [pc, #204] ; (800179c <FlashStart+0x179c>)
  80016d0:   2100        movs  r1, #0
@@ -2633,24 +2651,28 @@ FUNCTION:   Setup GPIO as input with pull-up
  80017d6:   4648        mov   r0, r9
  80017d8:   f000 be44   b.w   8002464 <FlashStart+0x2464>   ; Set_GPIO_Configuration
 
-FUNCTION:   TODO_80017dc
+FUNCTION:   Reset I2C1 or I2C2
  80017dc:   b580        push  {r7, lr}
  80017de:   490c        ldr   r1, =0x40005400    ; { I2C1 } | [pc, #48]  ; (8001810 <FlashStart+0x1810>)
  80017e0:   4288        cmp   r0, r1
+ 
+; If r0 at entry is 0x40005400, then reset and release the I2C1 peripheral. Otherwise, reset and release
+; I2C2.
+ 
  80017e2:   d108        bne.n 80017f6 <FlashStart+0x17f6>
- 80017e4:   2101        movs  r1, #1
+ 80017e4:   2101        movs  r1, #1                           ; Reset I2C1
  80017e6:   f44f 1000   mov.w r0, #2097152   ; 0x200000
- 80017ea:   f000 f98f   bl 8001b0c <FlashStart+0x1b0c>
- 80017ee:   2100        movs  r1, #0
+ 80017ea:   f000 f98f   bl 8001b0c <FlashStart+0x1b0c>         ; Reset_APB1_Peripherals
+ 80017ee:   2100        movs  r1, #0                           ; Un-reset (release) I2C1
  80017f0:   f44f 1000   mov.w r0, #2097152   ; 0x200000
  80017f4:   e007        b.n   8001806 <FlashStart+0x1806>
- 80017f6:   2101        movs  r1, #1
+ 80017f6:   2101        movs  r1, #1                           ; Reset I2C2
  80017f8:   f44f 0080   mov.w r0, #4194304   ; 0x400000
- 80017fc:   f000 f986   bl 8001b0c <FlashStart+0x1b0c>
- 8001800:   2100        movs  r1, #0
- 8001802:   f44f 0080   mov.w r0, #4194304   ; 0x400000
+ 80017fc:   f000 f986   bl 8001b0c <FlashStart+0x1b0c>         ; Reset_APB1_Peripherals
+ 8001800:   2100        movs  r1, #0                           ; Un-reset (release) I2C2
+ 8001802:   f44f 0080   mov.w r0, #4194304   ; 0x400000 
  8001806:   e8bd 4004   ldmia.w  sp!, {r2, lr}
- 800180a:   f000 b97f   b.w   8001b0c <FlashStart+0x1b0c>
+ 800180a:   f000 b97f   b.w   8001b0c <FlashStart+0x1b0c>      ; Reset_APB1_Peripherals
  800180e:   bf00        nop
 
 .pool
@@ -2733,7 +2755,7 @@ FUNCTION:   TODO_8001814
  80018c4:   000186a1
 
 
-FUNCTION:   TODO_80018c8
+FUNCTION:   Enable_Disable_I2C1
  80018c8:   2900        cmp   r1, #0
  80018ca:   8801        ldrh  r1, [r0, #0]
  80018cc:   bf12        itee  ne
@@ -3056,7 +3078,6 @@ FUNCTION:   Reset_APB1_Peripherals
 
 # If r1 == 0, then r0 is a mask of bits to clear in the APB1 peripheral reset register
 # If r1 != 0, then r0 is a mask of bits to set.
-# Not sure why you'd ever want to "clear" bits, because writing 0 bits in this register has no effect
 
  8001b0c:   4a04        ldr   r2, =0x40021010    ; { Reset and clock control RCC } | [pc, #16]  ; (8001b20 <FlashStart+0x1b20>)
  8001b0e:   2900        cmp   r1, #0
@@ -3143,7 +3164,9 @@ FUNCTION:   TODO_8001bb4
  8001bbc:   2101        movs  r1, #1
  8001bbe:   f44f 0000   mov.w r0, #8388608   ; 0x800000
  8001bc2:   e8bd 4004   ldmia.w  sp!, {r2, lr}
- 8001bc6:   f7ff bf95   b.w   8001af4 <FlashStart+0x1af4>
+
+FUNCTION:   UNUSED_8001bc6
+ 8001bc6:   f7ff bf95   b.w   8001af4 <FlashStart+0x1af4>      ; Enable_APB1_Peripherals
  8001bca:   4808        ldr   r0, =0x20000874    ; { RAM (bss) } | [pc, #32]  ; (8001bec <FlashStart+0x1bec>)
  8001bcc:   2103        movs  r1, #3
  8001bce:   6001        str   r1, [r0, #0]
@@ -3408,7 +3431,7 @@ FUNCTION:   TODO_8001df8
  8001dfa:   b096        sub   sp, #88  ; 0x58
  8001dfc:   2101        movs  r1, #1
  8001dfe:   f44f 70f0   mov.w r0, #480 ; 0x1e0
- 8001e02:   f7ff fe6b   bl 8001adc <FlashStart+0x1adc>
+ 8001e02:   f7ff fe6b   bl 8001adc <FlashStart+0x1adc>      ; Enable_APB2_Peripherals
  8001e06:   f24c 7003   movw  r0, #50947  ; 0xc703
  8001e0a:   f8ad 0000   strh.w   r0, [sp]
  8001e0e:   2018        movs  r0, #24
@@ -4402,7 +4425,7 @@ FUNCTION:   TODO_80025f0
  80025f2:   b086        sub   sp, #24
  80025f4:   2101        movs  r1, #1
  80025f6:   f241 000c   movw  r0, #4108   ; 0x100c
- 80025fa:   f7ff fa6f   bl 8001adc <FlashStart+0x1adc>
+ 80025fa:   f7ff fa6f   bl 8001adc <FlashStart+0x1adc>      ; Enable_APB2_Peripherals
  80025fe:   20e0        movs  r0, #224 ; 0xe0
  8002600:   f8ad 0000   strh.w   r0, [sp]
  8002604:   2018        movs  r0, #24
